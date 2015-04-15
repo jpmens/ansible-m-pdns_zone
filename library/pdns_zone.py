@@ -410,7 +410,7 @@ def main():
 
     if action == 'list':
         list = zone_list(module, base_url, zone)
-        module.exit_json(zone=None, changed=False, zones=list)
+        module.exit_json(zone=zone, changed=False, zones=list)
 
     # Mission accomplished
 
