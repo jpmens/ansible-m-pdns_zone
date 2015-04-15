@@ -67,7 +67,6 @@ Options (= is mandatory):
 Notes:  It is not possible to convert a zone from slave to master or vice
         versa. See also the [dnsupdate] module.
 
-Requirements:  urllib2
 
 EXAMPLES:
 - name: Create a slave zone; obtain config from specific file

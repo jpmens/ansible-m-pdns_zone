@@ -114,7 +114,7 @@ notes:
     - It is not possible to convert a zone from slave to master or vice versa.
     - See also the M(dnsupdate) module.
 # informational: requirements for nodes
-requirements: None
+# requirements: None
 author: Jan-Piet Mens
 '''
 
