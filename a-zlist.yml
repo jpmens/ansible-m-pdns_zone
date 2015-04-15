@@ -1,0 +1,11 @@
+- hosts:
+  - t1.prox
+  vars:
+  gather_facts: False
+  tasks:
+  - name: List existing zones
+    action: pdns_zone action=list zone=*.org
+    register: zl
+
+  - name: Create report
+    local_action: template src=a-zlist.j2 dest=/tmp/rep.out

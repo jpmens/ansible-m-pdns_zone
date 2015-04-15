@@ -1,0 +1,7 @@
+- hosts:
+  - t1.prox
+  gather_facts: False
+  tasks:
+  - action: pdns_zone name="ansi.test" action=master
+            soa="ns.example.net hostmaster.example.com 1 1800 900 604800 3602"
+            nsset="ns.example.net,ns.example.org"

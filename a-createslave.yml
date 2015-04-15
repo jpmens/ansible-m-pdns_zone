@@ -1,0 +1,9 @@
+---
+- hosts:
+  - t1.prox
+  gather_facts: False
+  tasks:
+  - name: Create slave zone
+    action: pdns_zone zone="example.org"
+            action=slave
+            masters="127.0.0.2:5301"

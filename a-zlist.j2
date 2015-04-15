@@ -1,0 +1,5 @@
+; {{ ansible_managed }}
+
+{% for z in zl.zones | sort(attribute='name') %}
+{{ "%-20s %-10s %s"|format(z.name, z.kind, z.serial) }}
+{% endfor %}
