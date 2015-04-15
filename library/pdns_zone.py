@@ -24,7 +24,6 @@ try:
     import json
 except ImportError:
     import simplejson as json
-import urllib2
 import fileinput
 import fnmatch
 
@@ -115,7 +114,7 @@ notes:
     - It is not possible to convert a zone from slave to master or vice versa.
     - See also the M(dnsupdate) module.
 # informational: requirements for nodes
-requirements: [ urllib2 ]
+requirements: None
 author: Jan-Piet Mens
 '''
 
@@ -176,80 +175,61 @@ def read_pdns_conf(path='/etc/powerdns/pdns.conf'):
     except:
         raise
 
-
-class RequestWithMethod(urllib2.Request):
-    def __init__(self, *args, **kwargs):
-        self._method = kwargs.pop('method', None)
-        urllib2.Request.__init__(self, *args, **kwargs)
-
-    def get_method(self):
-        return self._method if self._method else super(RequestWithMethod, self).get_method()
-
-class RequestPOST(urllib2.Request):
-    def __init__(self, *args, **kwargs):
-        self._method = 'POST' #FIXME: why doesn't POST work from Ansible above?
-        urllib2.Request.__init__(self, *args, **kwargs)
-
-    def get_method(self):
-        return self._method if self._method else super(RequestWithMethod, self).get_method()
-
 def zone_exists(module, base_url, zone):
     ''' Check if zone is configured in PowerDNS. Return
         kind of zone (native, master, slave) uppercased or None '''
 
     url = "{0}/{1}".format(base_url, zone)
-    try:
-        req = RequestWithMethod(url, method='GET', headers=headers)
-        contents = urllib2.urlopen(req).read()
-        data = json.loads(contents)
-        kind = data.get('kind', None)
-        if kind is not None:
-            kind = kind.upper()
-        return kind
-    except urllib2.HTTPError as e:
-        if e.code == 422:
-            return None
-        module.fail_json( msg="zone %s http_code %s (%s)" % (zone, e.code, e.read()))
-    except urllib2.URLError as e:
-        module.fail_json( msg="zone %s: (%s)" % (zone, str(e)))
+
+    response, info = fetch_url(module, url, headers=headers)
+    if info['status'] == 422:  # not found
+        return None
+
+    if info['status'] != 200:
+        module.fail_json(msg="failed to check zone %s: %s" % (zone, info['msg']))
+
+    content = response.read()
+    data = json.loads(content)
+
+    kind = data.get('kind', None)
+    if kind is not None:
+        kind = kind.upper()
+    return kind
 
 def zone_list(module, base_url, zone=None):
     ''' Return list of existing zones '''
 
     list = []
     url = "{0}".format(base_url)
-    try:
-        req = RequestWithMethod(url, method='GET', headers=headers)
-        contents = urllib2.urlopen(req).read()
-        data = json.loads(contents)
-        for z in data:
-            if zone is None or fnmatch.fnmatch(z['name'], zone):
-                list.append({
-                    'name'      : z['name'],
-                    'kind'      : z['kind'].lower(),
-                    'serial'    : z['serial'],
-                })
-        return list
 
-    except urllib2.HTTPError as e:
-        if e.code == 422:
-            return False
-        module.fail_json( msg="zone %s http_code %s (%s)" % (zone, e.code, e.read()))
-    except urllib2.URLError as e:
-        module.fail_json( msg="zone %s: (%s)" % (zone, str(e)))
+    response, info = fetch_url(module, url, headers=headers)
+    if info['status'] != 200:
+        module.fail_json(msg="failed to enumerate zones: %s" % info['msg'])
+
+    content = response.read()
+    data = json.loads(content)
+    for z in data:
+        if zone is None or fnmatch.fnmatch(z['name'], zone):
+            list.append({
+                'name'      : z['name'],
+                'kind'      : z['kind'].lower(),
+                'serial'    : z['serial'],
+            })
+    return list
 
 def zone_delete(module, base_url, zone):
     ''' Delete a zone in PowerDNS '''
 
     url = "{0}/{1}".format(base_url, zone)
-    try:
-        req = RequestWithMethod(url, method='DELETE', headers=headers)
-        contents = urllib2.urlopen(req).read()
-        return True
-    except urllib2.HTTPError as e:
-        if e.code != 422:
-            module.fail_json( msg="delete zone %s http_code %s (%s)" % (zone, e.code, e.read()))
+
+    response, info = fetch_url(module, url, headers=headers, method='DELETE')
+    if info['status'] == 422:
         return False
+    if info['status'] != 200:
+        module.fail_json(msg="failed to delete zone %s: %s" % (zone, info['msg']))
+
+    return True
+
 
 def zone_add_slave(module, base_url, zone, masters, comment):
     ''' Add a new Slave zone to PowerDNS '''
@@ -274,14 +254,11 @@ def zone_add_slave(module, base_url, zone, masters, comment):
     }
     payload = json.dumps(data)
 
-    try:
-        # req = RequestWithMethod(base_url, payload, method='POST', headers=headers)
-        req = RequestPOST(base_url, payload, headers=headers)
-        contents = urllib2.urlopen(req).read()
-        return True
-    except urllib2.HTTPError as e:
-        module.fail_json( msg="add slave zone %s http_code %s (%s)" % (zone, e.code, e.read()))
-        return False
+    response, info = fetch_url(module, base_url, data=payload, headers=headers, method='POST')
+    if info['status'] != 200:
+        module.fail_json(msg="failed to create slave zone %s: %s" % (zone, info['msg']))
+
+    return True
 
 def zone_add_master(module, base_url, zone, soa_rdata, ns_rrset, comment, ttl=60):
     ''' Add a new Master zone to PowerDNS '''
@@ -328,15 +305,11 @@ def zone_add_master(module, base_url, zone, soa_rdata, ns_rrset, comment, ttl=60
 
     payload = json.dumps(data)
 
-    try:
-        # req = RequestWithMethod(base_url, payload, headers=headers, method='POST')
-        req = RequestPOST(base_url, payload, headers=headers)
-        contents = urllib2.urlopen(req).read()
-        return True
-    except urllib2.HTTPError as e:
-        module.fail_json( msg="add master zone %s http_code %s (%s)" % (zone, e.code, e.read()))
-        return False
+    response, info = fetch_url(module, base_url, data=payload, headers=headers, method='POST')
+    if info['status'] != 200:
+        module.fail_json(msg="failed to create master zone %s: %s" % (zone, info['msg']))
 
+    return True
 
 # ==============================================================
 # main
