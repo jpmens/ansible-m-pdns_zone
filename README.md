@@ -1,5 +1,4 @@
-
-```txt
+```
 > PDNS_ZONE
 
   Lists, creates and deletes zones (a.k.a domains) of type master or
@@ -33,9 +32,9 @@ Options (= is mandatory):
         or `slave'. [Default: Ansible-managed]
 
 - masters
-        The name or address (or `address:port') of the master server
-        for a slave zone. This parameter is required for
-        action=`slave'. [Default: None]
+        A comma-separated list of the names or addresses (or
+        `address:port') of the master server for a slave zone.  This
+        parameter is required for action=`slave'. [Default: None]
 
 - nsset
         A comma-separated list of NS `names' for a master zone
@@ -67,7 +66,6 @@ Options (= is mandatory):
 Notes:  It is not possible to convert a zone from slave to master or vice
         versa. See also the [dnsupdate] module.
 
-
 EXAMPLES:
 - name: Create a slave zone; obtain config from specific file
   action: pdns_zone zone="example.org"
@@ -91,4 +89,5 @@ EXAMPLES:
           api_key={{ api_key }}
           api_host={{ api_host }}
           api_port={{ api_port }}
+
 ```

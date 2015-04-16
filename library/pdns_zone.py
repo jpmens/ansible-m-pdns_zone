@@ -83,8 +83,9 @@ options:
     default: null
   masters:
     description:
-      - The name or address (or C(address:port)) of the master server for a slave zone.
-        This parameter is required for action=C(slave).
+      - A comma-separated list of the names or addresses (or C(address:port))
+        of the master server for a slave zone.  This parameter is required for
+        action=C(slave).
     required: false
     default: null
   soa:
@@ -241,9 +242,11 @@ def zone_add_slave(module, base_url, zone, masters, comment):
     if kind == 'MASTER' or kind == 'NATIVE':
         module.fail_json( msg="zone %s is %s. Cannot convert to slave" % (zone, kind))
 
+    masters = masters.split(',')
+
     data = {
         'kind'      : 'Slave',
-        'masters'   : [ masters ],
+        'masters'   : masters,
         'name'      : zone,
         'comments'      : [{
                             'name'  : zone,
