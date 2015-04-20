@@ -187,7 +187,7 @@ def zone_exists(module, base_url, zone):
         return None
 
     if info['status'] != 200:
-        module.fail_json(msg="failed to check zone %s: %s" % (zone, info['msg']))
+        module.fail_json(msg="failed to check zone %s at %s: %s" % (zone, url info['msg']))
 
     content = response.read()
     data = json.loads(content)
@@ -205,7 +205,7 @@ def zone_list(module, base_url, zone=None):
 
     response, info = fetch_url(module, url, headers=headers)
     if info['status'] != 200:
-        module.fail_json(msg="failed to enumerate zones: %s" % info['msg'])
+        module.fail_json(msg="failed to enumerate zones at %s: %s" % (url, info['msg']))
 
     content = response.read()
     data = json.loads(content)
@@ -227,7 +227,7 @@ def zone_delete(module, base_url, zone):
     if info['status'] == 422:
         return False
     if info['status'] != 200:
-        module.fail_json(msg="failed to delete zone %s: %s" % (zone, info['msg']))
+        module.fail_json(msg="failed to delete zone %s at %s: %s" % (zone, url, info['msg']))
 
     return True
 
@@ -259,7 +259,7 @@ def zone_add_slave(module, base_url, zone, masters, comment):
 
     response, info = fetch_url(module, base_url, data=payload, headers=headers, method='POST')
     if info['status'] != 200:
-        module.fail_json(msg="failed to create slave zone %s: %s" % (zone, info['msg']))
+        module.fail_json(msg="failed to create slave zone %s at %s: %s" % (zone, base_url info['msg']))
 
     return True
 
@@ -310,7 +310,7 @@ def zone_add_master(module, base_url, zone, soa_rdata, ns_rrset, comment, ttl=60
 
     response, info = fetch_url(module, base_url, data=payload, headers=headers, method='POST')
     if info['status'] != 200:
-        module.fail_json(msg="failed to create master zone %s: %s" % (zone, info['msg']))
+        module.fail_json(msg="failed to create master zone %s at %s: %s" % (zone, base_url, info['msg']))
 
     return True
 
@@ -323,12 +323,13 @@ def main():
     global api_port
     global api_key
 
+    api_host = 'localhost'
 
     argument_spec = url_argument_spec()
     argument_spec.update(
         pdnsconf = dict(required=False, default='/etc/powerdns/pdns.conf'),
         api_key  = dict(required=False),
-        api_host = dict(required=False, default='localhost'),
+        api_host = dict(required=False),
         api_port = dict(required=False, type='int'),
         zone     = dict(required=False, default=None, aliases=['name', 'domain']),
         action   = dict(required=True, choices=['list', 'master', 'slave', 'delete']),
