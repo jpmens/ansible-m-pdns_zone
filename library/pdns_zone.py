@@ -50,12 +50,12 @@ options:
   action:
     description:
       - The action to perform.
-      - If C(action) equals C(delete), the zone is removed. Otherwise, if C(slave)
-        a slave zone is created or if C(master) a master zone is created.
+      - If C(action) equals C(delete), the zone is removed. Otherwise, if C(slave),
+        C(master), or C(native), the respective type of zone is created.
       - If action equals C(list), an array of zone names / kinds is returned.
     required: true
     default: null
-    choices: [ "slave", "master", "delete", "list" ]
+    choices: [ "slave", "master", "native", "delete", "list" ]
   pdnsconf:
     description:
       - The path to the PowerDNS configuration file from which I(api_key),
@@ -97,7 +97,7 @@ options:
   nsset:
     description:
       - A comma-separated list of NS I(names) for a master zone (required for
-        action=C(master). Each element in the list will become a name server
+        action=C(master) and C(native). Each element in the list will become a name server
         for the specified zone, configured with the specified C(ttl).
     required: false
     default: null
@@ -263,19 +263,23 @@ def zone_add_slave(module, base_url, zone, masters, comment):
 
     return True
 
-def zone_add_master(module, base_url, zone, soa_rdata, ns_rrset, comment, ttl=60):
-    ''' Add a new Master zone to PowerDNS '''
+def zone_add_master(module, base_url, zone, soa_rdata, ns_rrset, comment, ttl=60, wantkind='Master'):
+    ''' Add a new Master/Native zone to PowerDNS '''
 
     kind = zone_exists(module, base_url, zone)
-    if kind == 'MASTER':
+    if kind == 'MASTER' or kind == 'NATIVE':
         return False
 
-    if kind == 'SLAVE' or kind == 'NATIVE':
-        module.fail_json( msg="zone %s is %s. Cannot convert to master" % (zone, kind))
+    if kind == 'MASTER':
+        if kind == 'SLAVE' or kind == 'NATIVE':
+            module.fail_json( msg="zone %s is %s. Cannot convert to master" % (zone, kind))
+    if kind == 'NATIVE':
+        if kind == 'SLAVE' or kind == 'MASTER':
+            module.fail_json( msg="zone %s is %s. Cannot convert to native" % (zone, kind))
 
     records = []
     data = {
-        'kind'          : 'Master',
+        'kind'          : str(wantkind).lower().title(),
         'masters'       : [ ],
         'name'          : zone,
         'nameservers'   : [],   # I'm creating records "manually" below to avoid automatic TTL=3600
@@ -310,7 +314,7 @@ def zone_add_master(module, base_url, zone, soa_rdata, ns_rrset, comment, ttl=60
 
     response, info = fetch_url(module, base_url, data=payload, headers=headers, method='POST')
     if info['status'] != 200:
-        module.fail_json(msg="failed to create master zone %s at %s: %s" % (zone, base_url, info['msg']))
+        module.fail_json(msg="failed to create %s zone %s at %s: %s" % (kind, zone, base_url, info['msg']))
 
     return True
 
@@ -332,7 +336,7 @@ def main():
         api_host = dict(required=False),
         api_port = dict(required=False, type='int'),
         zone     = dict(required=False, default=None, aliases=['name', 'domain']),
-        action   = dict(required=True, choices=['list', 'master', 'slave', 'delete']),
+        action   = dict(required=True, choices=['list', 'master', 'native', 'slave', 'delete']),
         masters  = dict(required=False),
         soa      = dict(required=False),
         nsset    = dict(required=False),
@@ -374,7 +378,15 @@ def main():
         if nsset is None:
             module.fail_json( msg="Master zone %s requires NS set" % (zone))
 
-        changed = zone_add_master(module, base_url, zone, soa, nsset, comment, ttl)
+        changed = zone_add_master(module, base_url, zone, soa, nsset, comment, ttl, 'master')
+
+    if action == 'native':
+        if soa is None:
+            module.fail_json( msg="Native zone %s requires SOA" % (zone))
+        if nsset is None:
+            module.fail_json( msg="Native zone %s requires NS set" % (zone))
+
+        changed = zone_add_master(module, base_url, zone, soa, nsset, comment, ttl, 'native')
 
     if action == 'slave':
         if masters is None:
