@@ -148,8 +148,8 @@ headers = {
     "Accept" : "application/json",
     "X-API-Key" : None,
 }
-api_host = None
-api_port = None
+api_host = '127.0.0.1'
+api_port = 8081
 api_key  = None
 
 # ==============================================================
