@@ -148,8 +148,8 @@ headers = {
     "Accept" : "application/json",
     "X-API-Key" : None,
 }
-api_host = None
-api_port = None
+api_host = '127.0.0.1'
+api_port = 8081
 api_key  = None
 
 # ==============================================================
@@ -169,7 +169,7 @@ def read_pdns_conf(path='/etc/powerdns/pdns.conf'):
                     api_host = val
                 elif key == 'webserver-port':
                     api_port = int(val)
-                elif key == 'experimental-api-key':
+                elif key == 'api-key':
                     api_key = val
             except:
                 pass
@@ -364,7 +364,7 @@ def main():
     comment   = module.params['comment']
     ttl       = module.params['ttl']
 
-    base_url = 'http://{0}:{1}/servers/localhost/zones'.format(api_host, api_port)
+    base_url = 'http://{0}:{1}/api/v1/servers/localhost/zones'.format(api_host, api_port)
     headers['X-API-Key'] = api_key
 
     if api_host is None or api_key is None or api_port is None:
