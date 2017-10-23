@@ -1,0 +1,19 @@
+---
+
+galaxy_info:
+  author: JP Mens
+  description: Ansible module to interact with the PowerDNS API
+  min_ansible_version: 2.0
+  platforms:
+    - name: Debian
+      versions:
+       - jessie
+       - stretch
+    - name: Ubuntu
+      versions:
+       - xenial
+       - yakkety
+       - zesty
+  galaxy_tags:
+    - PowerDNS
+    - pdns
