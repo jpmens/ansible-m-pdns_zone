@@ -176,6 +176,10 @@ def read_pdns_conf(path='/etc/powerdns/pdns.conf'):
     except:
         raise
 
+def make_canonical_name(name):
+    if name[-1] != '.':
+        return name + '.'
+
 def zone_exists(module, base_url, zone):
     ''' Check if zone is configured in PowerDNS. Return
         kind of zone (native, master, slave) uppercased or None '''
@@ -356,7 +360,7 @@ def main():
     api_key   = module.params['api_key'] if module.params['api_key'] else api_key
     api_host  = module.params['api_host'] if module.params['api_host'] else api_host
     api_port  = module.params['api_port'] if module.params['api_port'] else api_port
-    zone      = module.params['zone']
+    zone      = make_canonical_name(module.params['zone'])
     masters   = module.params['masters']
     action    = module.params['action']
     soa       = module.params['soa']
