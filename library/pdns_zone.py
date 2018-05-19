@@ -187,7 +187,7 @@ def zone_exists(module, base_url, zone):
     url = "{0}/{1}".format(base_url, zone)
 
     response, info = fetch_url(module, url, headers=headers)
-    if info['status'] == 422:  # not found
+    if info['status'] == 404:  # not found
         return None
 
     if info['status'] != 200:
@@ -262,7 +262,7 @@ def zone_add_slave(module, base_url, zone, masters, comment):
     payload = json.dumps(data)
 
     response, info = fetch_url(module, base_url, data=payload, headers=headers, method='POST')
-    if info['status'] != 200:
+    if info['status'] != 201:
         module.fail_json(msg="failed to create slave zone %s at %s: %s" % (zone, base_url, info['msg']))
 
     return True
