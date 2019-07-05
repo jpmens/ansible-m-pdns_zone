@@ -187,7 +187,7 @@ def zone_exists(module, base_url, zone):
     url = "{0}/{1}".format(base_url, zone)
 
     response, info = fetch_url(module, url, headers=headers)
-    if info['status'] == 404:  # not found
+    if info['status'] in [404, 422]:  # not found
         return None
 
     if info['status'] != 200:
@@ -317,7 +317,7 @@ def zone_add_master(module, base_url, zone, soa_rdata, ns_rrset, comment, ttl=60
     payload = json.dumps(data)
 
     response, info = fetch_url(module, base_url, data=payload, headers=headers, method='POST')
-    if info['status'] != 200:
+    if not info['status'] in [200, 201]:
         module.fail_json(msg="failed to create %s zone %s at %s: %s" % (kind, zone, base_url, info['msg']))
 
     return True
